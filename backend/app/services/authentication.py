@@ -11,7 +11,7 @@ from app.schema.schema import UserCreate
 
 
 class AuthService:
-    async def __init__(self, db: AsyncSession) -> None:
+    def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
     async def validate_for_registration(self, form_data: UserCreate) -> bool:

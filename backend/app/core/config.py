@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int
     REFRESH_TOKEN_EXPIRE_DAY: int
     ENV: Literal["production", "development"]
+    PYTHONASYNCIODEBUG: int
 
     model_config = {"env_file": ".env"}
 
