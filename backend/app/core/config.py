@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DATABASE_URL: str
+    ALEMBIC_DATABASE_URL: str
     DUMMY_PASSWORD: str
     SECRET_KEY: str
     ALGORITHM: str

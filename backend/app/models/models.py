@@ -1,7 +1,9 @@
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 from uuid import UUID, uuid7
 
+from pydantic import EmailStr
 from sqlalchemy import Column, DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -22,6 +24,20 @@ class GradesStatus(str, Enum):
     failed = "failed"
 
 
+class RefreshTokens(SQLModel, table=True):
+    id: UUID | None = Field(default_factory=uuid7, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", nullable=False)
+    revoked: bool = False
+    role: UserRole
+    token_hash: str
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+    expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
+
+
 class CohortEnrollment(SQLModel, table=True):
     cohort_id: UUID = Field(foreign_key="cohorts.id", primary_key=True)
     student_id: UUID = Field(foreign_key="users.id", primary_key=True)
@@ -29,11 +45,11 @@ class CohortEnrollment(SQLModel, table=True):
 
 class Users(SQLModel, table=True):
     id: UUID | None = Field(default_factory=uuid7, primary_key=True)
-    fullname: str
+    fullname: str = Field(unique=True)
     password: str
-    email: str = Field(unique=True)
+    email: EmailStr = Field(unique=True)
     role: UserRole
-    tutor_cohort: Cohorts | None = Relationship(back_populates="tutor")
+    tutor_cohort: Optional["Cohorts"] = Relationship(back_populates="tutor")
     student_cohorts: list["Cohorts"] | None = Relationship(
         back_populates="students", link_model=CohortEnrollment
     )
@@ -48,9 +64,9 @@ class Assignments(SQLModel, table=True):
     deadline: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
-    curriculum: Curriculum = Relationship(back_populates="assignment")
+    curriculum: "Curriculum" = Relationship(back_populates="assignments")
     submissions: list["Submissions"] = Relationship(back_populates="assignment")
-    solution: Solutions | None = Relationship(back_populates="assignment")
+    solution: Optional["Solutions"] = Relationship(back_populates="assignment")
 
 
 class Curriculum(SQLModel, table=True):
@@ -60,7 +76,8 @@ class Curriculum(SQLModel, table=True):
     description: str
     completion_status: CompletionStatus
     assignments: list["Assignments"] = Relationship(back_populates="curriculum")
-    cohort: Cohorts = Relationship(back_populates="curriculum")
+    cohort: "Cohorts" = Relationship(back_populates="curriculum")
+    order: int = Field(ge=0)
 
 
 class Cohorts(SQLModel, table=True):
@@ -80,7 +97,7 @@ class Submissions(SQLModel, table=True):
     assignment_id: UUID = Field(foreign_key="assignments.id")
     student_id: UUID = Field(foreign_key="users.id")
     student: Users = Relationship(back_populates="submissions")
-    assignment: Assignments = Relationship(back_populates="submissions")
+    assignment: "Assignments" = Relationship(back_populates="submissions")
     name: str
     submission: str
     submitted_at: datetime = Field(

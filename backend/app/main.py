@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from typing import cast
 
@@ -10,14 +11,15 @@ from slowapi.util import get_remote_address
 from starlette.types import ExceptionHandler
 
 from app.api.v1.api import api_router
-from app.core.database import init_db
+from app.core.database import async_engine
 from app.core.middleware import ReqAndResLoggingMiddleware
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    logging.getLogger("uvicorn.access").disabled = True
     yield
+    await async_engine.dispose()
 
 
 limiter = Limiter(key_func=get_remote_address)  # rate limit by IP
