@@ -45,7 +45,7 @@ class CohortEnrollment(SQLModel, table=True):
 
 class Users(SQLModel, table=True):
     id: UUID | None = Field(default_factory=uuid7, primary_key=True)
-    fullname: str = Field(unique=True)
+    username: str = Field()
     password: str
     email: EmailStr = Field(unique=True)
     role: UserRole

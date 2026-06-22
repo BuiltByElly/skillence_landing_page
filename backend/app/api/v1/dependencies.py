@@ -1,13 +1,8 @@
-from typing import AsyncGenerator
+from typing import Annotated
 
+from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.database import async_session_factory
+from app.core.database import init_async_db
 
-
-async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_factory() as session:
-        try:
-            yield session
-        finally:
-            pass
+session_deps = Annotated[AsyncSession, Depends(init_async_db)]

@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
 from anyio import to_thread
-from sqlmodel import select
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlmodel.ext.asyncio.session import AsyncSession
+from starlette.status import HTTP_400_BAD_REQUEST
 
 from app.core.config import settings
 from app.core.security import hash_password, hash_refresh_token
@@ -15,30 +17,31 @@ class AuthService:
         self.db = db
 
     async def validate_for_registration(self, form_data: UserCreate) -> bool:
-        exists_in_db = await self.db.exec(
-            select(Users.email, Users.fullname).where(
-                (form_data.email == Users.email)
-                or (form_data.fullname == Users.fullname)
-            )
-        )
-
-        if not form_data.password.strip() == "":
-            if not exists_in_db.first():
-                return True
-        return False
+        if form_data.password.strip() == "" or form_data.username.strip() == "":
+            await to_thread.run_sync(hash_password, settings.DUMMY_PASSWORD)
+            return False
+        return True
 
     async def register_user(self, form_data: UserCreate):
         hashed_password = await to_thread.run_sync(hash_password, form_data.password)
-        new_user = Users(
-            fullname=form_data.fullname,
-            password=hashed_password,
-            email=form_data.email,
-            role=form_data.role,
-        )
-        self.db.add(new_user)
-        await self.db.commit()
-        await self.db.refresh(new_user)
-        return new_user
+        try:
+            new_user = Users(
+                username=form_data.username,
+                password=hashed_password,
+                email=form_data.email,
+                role=form_data.role,
+            )
+            self.db.add(new_user)
+            await self.db.commit()
+            await self.db.refresh(new_user)
+            return new_user
+
+        except IntegrityError:
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=HTTP_400_BAD_REQUEST,
+                detail="User already exist",
+            )
 
     async def write_refresh_token_to_db(
         self, refresh_token: str, user: Users, remember_me: bool = False

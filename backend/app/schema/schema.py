@@ -4,7 +4,7 @@ from app.models.models import UserRole
 
 
 class UserCreate(BaseModel):
-    fullname: str
+    username: str
     password: str
     email: EmailStr
     role: UserRole

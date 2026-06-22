@@ -1,5 +1,6 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.models.models import UserRole
 from app.schema.schema import UserCreate
 from app.services.authentication import AuthService
 
@@ -12,14 +13,21 @@ class TestValidation:
         result = await auth_service.validate_for_registration(test_user_credentials)
         assert result is True
 
-    # def test_validate_for_register_with_unavailable_email_and_fullname(
+    # async def test_validate_for_register_with_unavailable_email(
     #     self, session, test_user_credentials, test_user
     # ):
+    #     auth_service = AuthService(session)
+    #     result = await auth_service.validate_for_registration(test_user_credentials)
+    #     assert result is False
 
-    #     with pytest.raises(HTTPException) as exec:
-    #         auth_service = AuthService(session)
-    #         auth_service.validate_for_registration(test_user_credentials)
-    #     assert not exec.value
+    async def test_validate_for_register_with_empty_password_and_username(
+        self, session
+    ):
+        auth_service = AuthService(session)
+        result = await auth_service.validate_for_registration(
+            UserCreate(username="", password="", email="e@g.com", role=UserRole.tutor)
+        )
+        assert result is False
 
     # def test_validate_for_login_with_success(self, session, test_user_credentials):
     #     auth_service = AuthService(session)
