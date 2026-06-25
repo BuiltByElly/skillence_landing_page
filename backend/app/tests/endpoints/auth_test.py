@@ -1,7 +1,7 @@
-
 import httpx
 
 from app.models.models import Users
+from app.schema.schema import UserCreate, UserLogin
 
 
 class TestRegistrationEndpoint:
@@ -25,7 +25,7 @@ class TestRegistrationEndpoint:
         assert "accessToken" in response.json()
         assert response.cookies.get("refreshToken") is not None
 
-    async def test_registration_validation_error(
+    async def test_registration_validation_for_registration_error(
         self,
         client: httpx.AsyncClient,
     ):
@@ -44,6 +44,7 @@ class TestRegistrationEndpoint:
         self,
         client: httpx.AsyncClient,
         test_user: Users,
+        test_user_credentials: UserCreate,
     ):
         response = await client.post(
             "/api/v1/auth/register",
@@ -51,7 +52,29 @@ class TestRegistrationEndpoint:
                 "username": "elly",
                 "password": "123456",
                 "role": "tutor",
-                "email": "e@g.com",
+                "email": test_user_credentials.email,
             },
         )
         assert response.status_code == 400
+
+
+class TestAuthenticationEndpoint:
+    async def test_authentication_success(
+        self, test_user, test_user_credentials: UserLogin, client: httpx.AsyncClient
+    ):
+        response = await client.post(
+            "/api/v1/auth/login",
+            json={"password": "123456", "email": test_user_credentials.email},
+        )
+
+        assert response.status_code == 200
+
+    async def test_authentication_error(
+        self, test_user, test_user_credentials: UserLogin, client: httpx.AsyncClient
+    ):
+        response = await client.post(
+            "/api/v1/auth/login",
+            json={"password": "12346", "email": test_user_credentials.email},
+        )
+
+        assert response.status_code == 401

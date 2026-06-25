@@ -1,49 +1,51 @@
+import pytest
+from fastapi import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.models import UserRole
-from app.schema.schema import UserCreate
+from app.schema.schema import UserLogin
 from app.services.authentication import AuthService
 
 
-class TestValidation:
-    async def test_validate_for_register_with_success(
-        self, session: AsyncSession, test_user_credentials: UserCreate
+class Test_for_registration:
+    async def test_registration_with_success(
+        self, session: AsyncSession, test_user_credentials
     ):
         auth_service = AuthService(session)
-        result = await auth_service.validate_for_registration(test_user_credentials)
-        assert result is True
 
-    # async def test_validate_for_register_with_unavailable_email(
-    #     self, session, test_user_credentials, test_user
-    # ):
-    #     auth_service = AuthService(session)
-    #     result = await auth_service.validate_for_registration(test_user_credentials)
-    #     assert result is False
+        user = await auth_service.register_user(test_user_credentials)
 
-    async def test_validate_for_register_with_empty_password_and_username(
-        self, session
+        assert user is not None
+
+    async def test_registration_integrity_error(
+        self, session: AsyncSession, test_user_credentials
     ):
         auth_service = AuthService(session)
-        result = await auth_service.validate_for_registration(
-            UserCreate(username="", password="", email="e@g.com", role=UserRole.tutor)
-        )
-        assert result is False
+        await auth_service.register_user(test_user_credentials)
 
-    # def test_validate_for_login_with_success(self, session, test_user_credentials):
-    #     auth_service = AuthService(session)
+        with pytest.raises(HTTPException) as exec:
+            await auth_service.register_user(test_user_credentials)
 
-    #     result = auth_service.validate_for_login(
-    #         test_user_credentials["password"],
-    #         test_user_credentials["email"],
-    #     )
-    #     assert result is True
+        assert exec.value.status_code == 400
 
-    # def test_validate_for_login_with_failure(self, session, test_user_credentials):
-    #     auth_service = AuthService(session)
 
-    #     with pytest.raises(HTTPException) as exec:
-    #         auth_service.validate_for_login(
-    #             "",
-    #             "2.com",
-    #         )
-    #     assert exec.value.status_code == 401
+class Test_for_authentication:
+    async def test_authentication_with_success(
+        self, session: AsyncSession, test_user_credentials, test_user
+    ):
+        auth_service = AuthService(session)
+
+        user = await auth_service.authenticate_user(test_user_credentials)
+
+        assert user is not None
+
+    async def test_authentication_with_error(
+        self, session: AsyncSession, test_user_credentials, test_user
+    ):
+        auth_service = AuthService(session)
+
+        with pytest.raises(HTTPException) as exec:
+            await auth_service.authenticate_user(
+                UserLogin(email="t@g.com", password="12345")
+            )
+
+        assert exec.value.status_code == 401

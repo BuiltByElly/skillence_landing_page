@@ -1,4 +1,5 @@
 from typing import AsyncGenerator
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -41,7 +42,7 @@ async def session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None
     async with test_engine.connect() as connection:
         transaction = await connection.begin()
         session_factory = async_sessionmaker(
-            bind=test_engine,
+            bind=connection,
             class_=AsyncSession,
             expire_on_commit=False,
             join_transaction_mode="create_savepoint",
@@ -69,12 +70,15 @@ async def client(session: AsyncSession) -> AsyncGenerator[httpx.AsyncClient, Non
 @pytest.fixture
 def test_user_credentials() -> UserCreate:
     return UserCreate(
-        username="elly", password="123456", email="e@g.com", role=UserRole.tutor
+        username="elly",
+        password="123456",
+        email=f"user_{uuid4().hex[:5]}@test.com",
+        role=UserRole.tutor,
     )
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_user(session: AsyncSession):
+async def test_user(session: AsyncSession, test_user_credentials: UserCreate):
     from uuid import uuid7
 
     from app.core.security import hash_password
@@ -85,8 +89,8 @@ async def test_user(session: AsyncSession):
         username="elly",
         password=hash_password("123456"),
         role=UserRole.tutor,
-        email="e@g.com",
+        email=test_user_credentials.email,
     )
     session.add(user)
-    await session.commit()
+    await session.flush()
     return user

@@ -9,3 +9,14 @@ class UserCreate(BaseModel):
     email: EmailStr
     role: UserRole
     remember_me: bool = False
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+    remember_me: bool = False
+
+
+class UserJWT(BaseModel):
+    sub: str
+    role: UserRole
